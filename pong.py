@@ -2,39 +2,139 @@ import pygame
 from pygame.locals import *
 from sys import exit
 import random
+import math
+
+WIDTH = 900
+HEIGHT = 600
+
+paddle_height = 30
+paddle_width = 5
+
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
 
 pygame.init()
 
-screen = pygame.display.set_mode((1024, 800))
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
 clock = pygame.time.Clock()
-pygame.display.flip()
 
-x_pos = 0
-y_pos = 0
+class Ball(pygame.sprite.Sprite):
 
-x_=10
-y_=10
-while True:
-	for event in pygame.event.get():
+    image = pygame.Surface([5, 5])
 
-		if event.type == pygame.QUIT:
-			exit()
-	screen.fill((0, 255, 0))	
-	pygame.draw.rect(screen, (255,255,255), pygame.Rect(y_pos, x_pos, 50, 50))
-	pygame.display.flip()
+    direction = random.randrange(90, 135)
+    
+    x = random.randrange(50, 500)
+    y = random.randrange(100, 200)
 
-	x_pos += x_
-	y_pos += y_
+    speed = 8
 
-	if x_pos+50 >= 800:
-        	x_ = -1
-	if x_pos <= 0:
-                x_ = 1
+    def __init__(self):
+
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image.fill(BLACK)
+
+        self.rect = self.image.get_rect()
+
+    def update(self):
+
+        direction_radians = math.radians(self.direction)
+
+        self.x += self.speed * math.sin(direction_radians)
+        self.y += self.speed * math.cos(direction_radians)
+
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+        if self.y <= 0:
+
+           self.direction = (180-self.direction)%360
+
+        if self.y >= HEIGHT:
+
+           self.direction = (180-self.direction)%360
+
+        if self.x >= WIDTH:
+
+           self.direction = (360-self.direction)%360
+
+class Paddle(pygame.sprite.Sprite):
+
+    image = pygame.Surface([paddle_width, paddle_height]) 
+
+    speed = 0
+
+    def __init__(self, starty=HEIGHT/2):
+
+        pygame.sprite.Sprite.__init__(self)
         
-	if y_pos+50 >= 1024:
-                y_ = -1
-	if y_pos <= 0:
-                y_ = 1
-	clock.tick_busy_loop(10)
-	pygame.display.set_caption("fps: " + str(clock.get_fps()))
+        # center position of sprite
+        self.pos = (paddle_width/2, starty)
+
+        self.image.fill(BLACK)
+        
+        self.rect = self.image.get_rect()
+
+    def move_up(self):
+
+        self.speed = -5
+
+    def move_down(self):
+
+        self.speed = 5
+
+    def update(self):
+
+        self.rect.centery = self.rect.centery + self.speed
+
+        self.rect.clamp_ip(screen.get_rect())
+
+paddle_left = Paddle()
+
+ball = Ball()
+
+paddles = pygame.sprite.Group()
+balls = pygame.sprite.Group()
+
+paddles.add(paddle_left)
+balls.add(ball)
+
+gameon = True
+
+while gameon:
+	
+    for event in pygame.event.get():
+        
+        if event.type == pygame.QUIT:
+	    
+            gameon = False
+        
+        elif event.type == KEYDOWN:
+        
+            if event.key == K_DOWN:
+            
+                paddle_left.move_down()
+                
+            elif event.key == K_UP:
+            
+                paddle_left.move_up()
+
+        elif event.type == KEYUP:
+
+            paddle_left.speed = 0
+ 
+    screen.fill(WHITE) 
+    
+    clock.tick(60)
+    
+    paddles.update()
+    balls.update()
+    paddles.draw(screen)
+    balls.draw(screen)
+
+    pygame.display.set_caption("fps: " + str(clock.get_fps()))
+    	
+    pygame.display.flip()
 
